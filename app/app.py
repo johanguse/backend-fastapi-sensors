@@ -1,7 +1,8 @@
-from fastapi import FastAPI 
+from fastapi import FastAPI
 
-app = FastAPI()  
+app = FastAPI()
 
-@app.get("/")
+
+@app.get('/')
 async def root():
-    return {"message": "Welcome to the Sensor Data API"}
+    return {'message': 'Welcome to the Sensor Data API'}
