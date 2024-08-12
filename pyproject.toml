@@ -9,6 +9,9 @@ python = "3.11.*"
 charset-normalizer = "^3.1.0"  # Needed cause of a bug in poetry
 urllib3 = "^2.0"  # Needed cause of a bug in poetry
 fastapi = "^0.112.0"
+sqlalchemy = "^2.0.32"
+psycopg2-binary = "^2.9.9"
+pydantic = "^2.8.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.2"
@@ -24,6 +27,7 @@ extend-exclude = ['migrations']
 [tool.ruff.lint]
 preview = true
 select = ['I', 'F', 'E', 'W', 'PL', 'PT']
+ignore = ["E203", "E501"]
 
 [tool.ruff.format]
 preview = true
@@ -34,11 +38,11 @@ pythonpath = "."
 addopts = '-p no:warnings'
 
 [tool.taskipy.tasks]
-lint = 'ruff check . && ruff check . --diff'
-format = 'ruff check . --fix && ruff format .'
-run = 'fastapi dev fast_zero/app.py'
+lint = 'ruff check app && ruff check app --diff'
+format = 'ruff check app --fix && ruff format app'
+run = 'fastapi dev app/main.py'
 pre_test = 'task lint'
-test = 'pytest -s -x --cov=fast_zero -vv'
+test = 'pytest -s -x --cov=app -vv'
 post_test = 'coverage run -m pytest --cov=app'
 
 [build-system]
