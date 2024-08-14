@@ -1,18 +1,18 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, Integer, String
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
 
 
-class Company(Base):
-    __tablename__ = 'companies'
+class User(Base):
+    __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True, nullable=False)
-    address = Column(String)
-    admin_user_id = Column(Integer, ForeignKey('users.id'), nullable=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
@@ -22,5 +22,4 @@ class Company(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
-    admin_user = relationship('User', back_populates='companies')
-    equipment = relationship('Equipment', back_populates='company')
+    companies = relationship('Company', back_populates='admin_user')

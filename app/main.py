@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.database import Base, engine, get_db
-from app.routers import companies, equipment, sensor_data
+from app.routers import auth, companies, equipment, sensor_data
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -19,6 +19,7 @@ add_pagination(app)
 
 Base.metadata.create_all(bind=engine)
 
+app.include_router(auth.router, prefix=settings.API_V1_STR)
 app.include_router(companies.router, prefix=settings.API_V1_STR)
 app.include_router(equipment.router, prefix=settings.API_V1_STR)
 app.include_router(sensor_data.router, prefix=settings.API_V1_STR)
