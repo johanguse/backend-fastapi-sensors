@@ -3,6 +3,7 @@ from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -19,7 +20,11 @@ from app.schemas.user import User as UserSchema
 
 router = APIRouter()
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f'{settings.API_V1_STR}/login')
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f'{settings.API_V1_STR}/token')
+
+
+class RefreshToken(BaseModel):
+    refresh_token: str
 
 
 def get_current_user(
@@ -63,7 +68,7 @@ def login_for_access_token(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
     refresh_token_expires = timedelta(
-        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 24 * 7  # 1 week
     )
     access_token = create_access_token(
         subject=user.email, expires_delta=access_token_expires
@@ -80,7 +85,7 @@ def login_for_access_token(
 
 @router.post('/refresh_token', response_model=Token)
 def refresh_access_token(
-    refresh_token: str,
+    refresh_token: RefreshToken,
     db: Session = Depends(get_db),
 ):
     credentials_exception = HTTPException(
@@ -90,7 +95,9 @@ def refresh_access_token(
     )
     try:
         payload = jwt.decode(
-            refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+            refresh_token.refresh_token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM],
         )
         email: str = payload.get('sub')
         if email is None:
@@ -108,8 +115,15 @@ def refresh_access_token(
     access_token = create_access_token(
         subject=user.email, expires_delta=access_token_expires
     )
+    new_refresh_token = create_refresh_token(
+        subject=user.email, expires_delta=timedelta(days=7)
+    )
 
-    return {'access_token': access_token, 'token_type': 'bearer'}
+    return {
+        'access_token': access_token,
+        'refresh_token': new_refresh_token,
+        'token_type': 'bearer',
+    }
 
 
 @router.post('/register', response_model=UserSchema)
@@ -118,7 +132,9 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     if db_user:
         raise HTTPException(status_code=400, detail='Email already registered')
     hashed_password = get_password_hash(user.password)
-    new_user = User(email=user.email, hashed_password=hashed_password)
+    new_user = User(
+        email=user.email, hashed_password=hashed_password, name=user.name
+    )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)

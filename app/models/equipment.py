@@ -11,7 +11,7 @@ class Equipment(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey('companies.id'), nullable=False)
-    equipment_id = Column(String, index=True, nullable=False)
+    equipment_id = Column(String, index=True, nullable=False, unique=True)
     name = Column(String)
     created_at = Column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
