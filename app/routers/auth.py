@@ -68,7 +68,7 @@ def login_for_access_token(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
     refresh_token_expires = timedelta(
-        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 24 * 7  # 1 week
+        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 24 * 7
     )
     access_token = create_access_token(
         subject=user.email, expires_delta=access_token_expires
