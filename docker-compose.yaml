@@ -1,0 +1,41 @@
+networks:
+  fpb-net:
+    driver: bridge
+
+volumes:
+  postgresql_data: 
+    driver: local
+
+services:
+  app:
+    container_name: app
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+      target: base
+    volumes:
+      - "./app:/data/backend/app"
+      - "./tests:/data/backend/tests"
+      - "./.env:/data/backend/.env"
+    ports:
+      - "8000:8000"
+    command: /bin/sh -c "poetry run alembic upgrade head && poetry run uvicorn app.main:app --host 0.0.0.0 --reload --log-level debug"
+    restart: always
+    networks:
+      - fpb-net
+    depends_on:
+      - postgresql
+
+  postgresql:
+    container_name: postgresql
+    image: postgres:12.2-alpine
+    env_file:
+      - .db.env
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+      - ./docker/seed.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    restart: always
+    networks:
+      - fpb-net

@@ -6,6 +6,7 @@ from pydantic import BaseModel, EmailStr
 
 class UserBase(BaseModel):
     email: EmailStr
+    name: Optional[str] = None
 
 
 class UserCreate(UserBase):
@@ -33,10 +34,10 @@ class User(UserInDBBase):
 
 class Token(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str
 
 
-# If you need to represent the relationship with companies
 class CompanyBase(BaseModel):
     id: int
     name: str

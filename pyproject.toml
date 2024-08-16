@@ -11,10 +11,15 @@ urllib3 = "^2.0"  # Needed cause of a bug in poetry
 fastapi = "^0.112.0"
 sqlalchemy = "^2.0.32"
 psycopg2-binary = "^2.9.9"
-pydantic = "^2.8.2"
+pydantic = {extras = ["email"], version = "^2.8.2"}
 alembic = "^1.13.2"
+uvicorn = "^0.30.5"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 passlib = {extras = ["argon2"], version = "^1.7.4"}
+fastapi-pagination = {extras = ["sqlalchemy"], version = "^0.12.26"}
+python-dotenv = "^1.0.1"
+pydantic-settings = "^2.4.0"
+python-multipart = "^0.0.9"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.2"
@@ -22,6 +27,8 @@ pytest-cov = "^5.0.0"
 taskipy = "^1.13.0"
 ruff = "^0.5.7"
 httpx = "^0.27.0"
+testcontainers = {extras = ["postgresql"], version = "^4.8.0"}
+factory-boy = "^3.3.0"
 
 [tool.ruff]
 line-length = 79
