@@ -68,13 +68,18 @@ def login_for_access_token(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
     refresh_token_expires = timedelta(
-        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 24 * 7
+        minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES
     )
+    extra_data = {'name': user.name}
     access_token = create_access_token(
-        subject=user.email, expires_delta=access_token_expires
+        subject=user.email,
+        expires_delta=access_token_expires,
+        extra_data=extra_data,
     )
     refresh_token = create_refresh_token(
-        subject=user.email, expires_delta=refresh_token_expires
+        subject=user.email,
+        expires_delta=refresh_token_expires,
+        extra_data=extra_data,
     )
     return {
         'access_token': access_token,
