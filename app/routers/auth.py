@@ -88,6 +88,9 @@ def login_for_access_token(
     }
 
 
+invalidated_tokens = set()
+
+
 @router.post('/refresh_token', response_model=Token)
 def refresh_access_token(
     refresh_token: RefreshToken,
@@ -98,6 +101,10 @@ def refresh_access_token(
         detail='Could not validate refresh token',
         headers={'WWW-Authenticate': 'Bearer'},
     )
+
+    if refresh_token.refresh_token in invalidated_tokens:
+        raise credentials_exception
+
     try:
         payload = jwt.decode(
             refresh_token.refresh_token,
@@ -113,6 +120,8 @@ def refresh_access_token(
     user = db.query(User).filter(User.email == email).first()
     if user is None:
         raise credentials_exception
+
+    invalidated_tokens.add(refresh_token.refresh_token)
 
     access_token_expires = timedelta(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
