@@ -3,10 +3,14 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from testcontainers.postgres import PostgresContainer
+from jose import jwt
+import time
+from datetime import timedelta
 
 from app.core.database import Base, get_db
 from app.main import app
-from app.core.security import get_password_hash
+from app.core.security import get_password_hash, create_refresh_token
+from app.core.config import settings
 from tests.factories import UserFactory
 
 @pytest.fixture(scope="session")
@@ -108,11 +112,66 @@ def test_refresh_token_with_invalid_token(client):
     assert response.status_code == 401
     assert response.json()["detail"] == "Could not validate refresh token"
 
-
-def test_refresh_token_with_invalid_token(client):
+def test_refresh_token_with_expired_token(client, user):
+    expired_token = create_refresh_token(
+        user.email,
+        expires_delta=timedelta(seconds=-1)
+    )
     response = client.post(
         "/api/v1/refresh_token",
-        json={"refresh_token": "invalid_token"},
+        json={"refresh_token": expired_token},
     )
     assert response.status_code == 401
     assert response.json()["detail"] == "Could not validate refresh token"
+
+def test_refresh_token_with_non_existent_user(client, db):
+    non_existent_user_token = create_refresh_token("non_existent@example.com")
+    response = client.post(
+        "/api/v1/refresh_token",
+        json={"refresh_token": non_existent_user_token},
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Could not validate refresh token"
+
+def test_access_token_expiration(client, user):
+    response = client.post(
+        "/api/v1/token",
+        data={"username": user.email, "password": "testpassword"},
+    )
+    access_token = response.json()["access_token"]
+    
+    payload = jwt.decode(access_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    exp = payload.get("exp")
+
+    expected_exp = int(time.time()) + settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    assert abs(exp - expected_exp) < 5
+
+def test_refresh_token_rotation(client, user):
+    login_response = client.post(
+        "/api/v1/token",
+        data={"username": user.email, "password": "testpassword"},
+    )
+    initial_refresh_token = login_response.json()["refresh_token"]
+
+    refresh_response = client.post(
+        "/api/v1/refresh_token",
+        json={"refresh_token": initial_refresh_token},
+    )
+    assert refresh_response.status_code == 200
+    new_refresh_token = refresh_response.json()["refresh_token"]
+
+    assert initial_refresh_token != new_refresh_token
+
+    second_refresh_response = client.post(
+        "/api/v1/refresh_token",
+        json={"refresh_token": initial_refresh_token},
+    )
+    assert second_refresh_response.status_code == 401
+    assert second_refresh_response.json()["detail"] == "Could not validate refresh token"
+
+    third_refresh_response = client.post(
+        "/api/v1/refresh_token",
+        json={"refresh_token": new_refresh_token},
+    )
+    assert third_refresh_response.status_code == 200
+

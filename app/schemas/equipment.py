@@ -20,6 +20,7 @@ class EquipmentUpdate(EquipmentBase):
 
 class EquipmentInDBBase(EquipmentBase):
     id: int
+    company_id: int
     created_at: datetime
     updated_at: datetime
 
@@ -27,7 +28,7 @@ class EquipmentInDBBase(EquipmentBase):
 
 
 class Equipment(EquipmentInDBBase):
-    company_id: int
+    pass
 
 
 class EquipmentInDB(Equipment):
