@@ -1,4 +1,5 @@
 import pytest
+import logging
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -8,6 +9,9 @@ from app.core.database import Base, get_db
 from app.main import app
 from app.core.security import get_password_hash
 from tests.factories import UserFactory
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 @pytest.fixture(scope="session")
 def db_engine():
@@ -44,6 +48,7 @@ def user(db):
     db.add(user)
     db.commit()
     db.refresh(user)
+    logger.info(f"Created test user: {user.email}")
     return user
 
 @pytest.fixture
@@ -52,6 +57,7 @@ def other_user(db):
     db.add(user)
     db.commit()
     db.refresh(user)
+    logger.info(f"Created other test user: {user.email}")
     return user
 
 @pytest.fixture
@@ -60,4 +66,15 @@ def token(client, user):
         "/api/v1/token",
         data={"username": user.email, "password": "testpassword"},
     )
-    return response.json()["access_token"]
+    if response.status_code != 200:
+        logger.error(f"Failed to obtain token. Status code: {response.status_code}")
+        logger.error(f"Response content: {response.content}")
+        pytest.fail(f"Failed to obtain token. Status code: {response.status_code}, Response: {response.text}")
+    
+    data = response.json()
+    if "access_token" not in data:
+        logger.error(f"No access token in response. Response data: {data}")
+        pytest.fail(f"No access token in response. Response data: {data}")
+    
+    logger.info("Successfully obtained access token")
+    return data["access_token"]

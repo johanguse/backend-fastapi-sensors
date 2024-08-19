@@ -26,7 +26,6 @@ def read_sensor_data(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    # Check if the user has access to the equipment's company
     equipment = (
         db.query(Equipment).filter(Equipment.id == equipment_id).first()
     )
@@ -110,7 +109,6 @@ async def upload_csv(
                     row['timestamp'].strip(), '%Y-%m-%dT%H:%M:%S.%f%z'
                 )
 
-                # Check if the equipment exists and if the user has access to it
                 equipment = (
                     db.query(Equipment)
                     .filter(Equipment.equipment_id == row['equipmentId'])
@@ -122,7 +120,6 @@ async def upload_csv(
                         detail=f"Equipment with ID {row['equipmentId']} not found",
                     )
 
-                # Check if the user has access to the equipment's company
                 user_company_relation = (
                     db.query(user_company)
                     .filter(

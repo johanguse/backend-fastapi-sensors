@@ -19,3 +19,7 @@ The following tasks are available:
 - `task pre_test`: Run the linter before running tests
 - `task test`: Run the tests with pytest
 - `task post_test`: Run the tests with coverage
+
+
+## Todo
+[] Add more tests
