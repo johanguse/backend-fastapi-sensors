@@ -31,10 +31,12 @@ password: mE8eAazZ28xmmHG$
 ### Things could be improve with extra time aka to-do list.
 
  - Improve the documentation
+ - Improve CI/CD pipeline. Use github action to run the tests before push live
+ - Add more tests
  - Add more endpoints to user like reset password, change password, etc.
  - Add more endpoints to company like add sensors, etc.
  - Add more endpoints to sensor like add data, etc.
- 
+
 
 ## 🤖 Tech Stack
 
