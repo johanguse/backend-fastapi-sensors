@@ -1,8 +1,8 @@
 -- Insert data into users table
 INSERT INTO "users" ("email", "hashed_password", "is_active", "name", "created_at", "updated_at") VALUES
 ('johanguse@gmail.com', '$2b$12$OY7L8DQk6nx.sA288vHZl.xj8g1v80LwSG7ldgAdDun6tcj56Y3fW', TRUE, 'Johan Guse', NOW(), NOW()),
-('jane.smith@example.com', 'hashed_password_2', TRUE, 'Jane Smith', NOW(), NOW()),
-('alice.johnson@example.com', 'hashed_password_3', TRUE, 'Alice Johnson', NOW(), NOW());
+('jane.smith@example.com', '$2b$12$OY7L8DQk6nx.sA288vHZl.xj8g1v80LwSG7ldgAdDun6tcj56Y3fW', TRUE, 'Jane Smith', NOW(), NOW()),
+('alice.johnson@example.com', '$2b$12$OY7L8DQk6nx.sA288vHZl.xj8g1v80LwSG7ldgAdDun6tcj56Y3fW', TRUE, 'Alice Johnson', NOW(), NOW());
 
 -- Insert data into companies table
 INSERT INTO "companies" ("name", "address", "created_at", "updated_at") VALUES

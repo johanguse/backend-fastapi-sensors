@@ -9,7 +9,6 @@ class UserFactory(factory.Factory):
 
     email = factory.Sequence(lambda n: f'user{n}@example.com')
     name = factory.Faker('name')
-    hashed_password = factory.LazyAttribute(lambda obj: f'hashed_{obj.email}')
 
 class CompanyFactory(factory.Factory):
     class Meta:
@@ -17,7 +16,6 @@ class CompanyFactory(factory.Factory):
 
     name = factory.Faker('company')
     address = factory.Faker('address')
-    admin_user = factory.SubFactory(UserFactory)
 
 class EquipmentFactory(factory.Factory):
     class Meta:

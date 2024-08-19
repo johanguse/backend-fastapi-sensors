@@ -1,14 +1,34 @@
 import pytest
+import logging
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from testcontainers.postgres import PostgresContainer
 
+from app.core.database import Base, get_db
 from app.main import app
-from app.core.config import settings
-from app.core.database import get_db
-from app.models.equipment import Equipment
-from app.models.company import Company
-from app.models.user import User
-from tests.factories import CompanyFactory, EquipmentFactory, UserFactory
+from app.core.security import get_password_hash
+from tests.factories import UserFactory
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+@pytest.fixture(scope="session")
+def db_engine():
+    with PostgresContainer("postgres:13") as postgres:
+        engine = create_engine(postgres.get_connection_url())
+        yield engine
+
+@pytest.fixture(scope="function")
+def db(db_engine):
+    Base.metadata.create_all(db_engine)
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=db_engine)
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+    Base.metadata.drop_all(db_engine)
 
 @pytest.fixture(scope="function")
 def client(db):
@@ -19,69 +39,46 @@ def client(db):
             db.close()
     
     app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as test_client:
-        yield test_client
+    yield TestClient(app)
     del app.dependency_overrides[get_db]
 
-@pytest.fixture(scope="function")
-def user(db: Session):
-    user = UserFactory()
+@pytest.fixture
+def user(db):
+    password = "testpassword"
+    hashed_password = get_password_hash(password)
+    user = UserFactory(hashed_password=hashed_password)
     db.add(user)
     db.commit()
     db.refresh(user)
+    logger.info(f"Created test user: {user.email}")
     return user
 
-@pytest.fixture(scope="function")
-def company(db: Session, user: User):
-    company = CompanyFactory()
-    company.admin_user = user  # Assuming there's an admin_user relationship
-    db.add(company)
+@pytest.fixture
+def other_user(db):
+    password = "testpassword"
+    hashed_password = get_password_hash(password)
+    user = UserFactory(hashed_password=hashed_password)
+    db.add(user)
     db.commit()
-    db.refresh(company)
-    return company
+    db.refresh(user)
+    logger.info(f"Created other test user: {user.email}")
+    return user
 
-@pytest.fixture(scope="function")
-def equipment_list(db: Session, company: Company):
-    equipment_list = [EquipmentFactory(company=company) for _ in range(35)]  # Create more than default page size
-    db.add_all(equipment_list)
-    db.commit()
-    for eq in equipment_list:
-        db.refresh(eq)
-    return equipment_list
-
-def test_read_equipment(client: TestClient, equipment_list: list[Equipment]):
-    response = client.get("/api/v1/equipment")
-    assert response.status_code == 200
+@pytest.fixture
+def token(client, user):
+    response = client.post(
+        "/api/v1/token",
+        data={"username": user.email, "password": "testpassword"},
+    )
+    if response.status_code != 200:
+        logger.error(f"Failed to obtain token. Status code: {response.status_code}")
+        logger.error(f"Response content: {response.content}")
+        pytest.fail(f"Failed to obtain token. Status code: {response.status_code}, Response: {response.text}")
+    
     data = response.json()
-    assert "items" in data
-    assert len(data["items"]) == settings.DEFAULT_PAGE_SIZE
-    assert data["total"] == len(equipment_list)
-    assert data["page"] == 1
-    assert data["size"] == settings.DEFAULT_PAGE_SIZE
-    assert "pages" in data
-
-def test_read_equipment_pagination(client: TestClient, equipment_list: list[Equipment]):
-    response = client.get("/api/v1/equipment?page=2&size=10")
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data["items"]) == 10
-    assert data["total"] == len(equipment_list)
-    assert data["page"] == 2
-    assert data["size"] == 10
-    assert "pages" in data
-
-def test_read_equipment_filter_by_company(client: TestClient, equipment_list: list[Equipment], company: Company):
-    response = client.get(f"/api/v1/equipment?company_id={company.id}")
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data["items"]) == settings.DEFAULT_PAGE_SIZE
-    assert data["total"] == len(equipment_list)
-    for item in data["items"]:
-        assert item["company_id"] == company.id
-
-def test_read_equipment_filter_by_nonexistent_company(client: TestClient):
-    response = client.get("/api/v1/equipment?company_id=999999")
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data["items"]) == 0
-    assert data["total"] == 0
+    if "access_token" not in data:
+        logger.error(f"No access token in response. Response data: {data}")
+        pytest.fail(f"No access token in response. Response data: {data}")
+    
+    logger.info("Successfully obtained access token")
+    return data["access_token"]

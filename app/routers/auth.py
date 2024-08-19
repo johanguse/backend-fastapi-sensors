@@ -136,12 +136,10 @@ def register_user(
             detail='Invalid role. Must be either "admin" or "user"',
         )
 
-    # Check if the company exists
     company = db.query(Company).filter(Company.id == user.company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail='Company not found')
 
-    # Check if the current admin user has rights to this company
     admin_company = (
         db.query(user_company)
         .filter(
@@ -165,7 +163,6 @@ def register_user(
     db.commit()
     db.refresh(new_user)
 
-    # Add user to user_company table with specified role and company
     db.execute(
         user_company.insert().values(
             user_id=new_user.id, company_id=user.company_id, role=user.role
