@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
@@ -24,6 +24,21 @@ def read_equipment(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if company_id:
+        user_company_access = (
+            db.query(user_company)
+            .filter(
+                user_company.c.user_id == current_user.id,
+                user_company.c.company_id == company_id,
+            )
+            .first()
+        )
+        if not user_company_access:
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have access to this company's equipment",
+            )
+
     query = (
         db.query(Equipment)
         .join(Company, Equipment.company_id == Company.id)
@@ -39,4 +54,17 @@ def read_equipment(
     if company_id:
         query = query.filter(Equipment.company_id == company_id)
 
-    return paginate(query)
+    result = paginate(query)
+
+    if not result.items:
+        if company_id:
+            raise HTTPException(
+                status_code=404, detail='No equipment found for this company'
+            )
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail='No equipment found for any of your authorized companies',
+            )
+
+    return result

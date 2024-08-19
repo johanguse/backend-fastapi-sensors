@@ -1,6 +1,6 @@
 -- Insert data into users table
 INSERT INTO "users" ("email", "hashed_password", "is_active", "name", "created_at", "updated_at") VALUES
-('johanguse@gmail.com', 'hashed_password_1', TRUE, 'Johan Guse', NOW(), NOW()),
+('johanguse@gmail.com', '$2b$12$OY7L8DQk6nx.sA288vHZl.xj8g1v80LwSG7ldgAdDun6tcj56Y3fW', TRUE, 'Johan Guse', NOW(), NOW()),
 ('jane.smith@example.com', 'hashed_password_2', TRUE, 'Jane Smith', NOW(), NOW()),
 ('alice.johnson@example.com', 'hashed_password_3', TRUE, 'Alice Johnson', NOW(), NOW());
 
