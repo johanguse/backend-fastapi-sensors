@@ -20,6 +20,8 @@ fastapi-pagination = {extras = ["sqlalchemy"], version = "^0.12.26"}
 python-dotenv = "^1.0.1"
 pydantic-settings = "^2.4.0"
 python-multipart = "^0.0.9"
+pandas = "^2.2.2"
+chardet = "^5.2.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.2"
