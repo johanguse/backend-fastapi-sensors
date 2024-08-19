@@ -4,7 +4,7 @@ from io import StringIO
 
 import chardet
 import pandas as pd
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, Body
 from fastapi_pagination import LimitOffsetPage
 from sqlalchemy.orm import Session
 
@@ -13,7 +13,7 @@ from app.core.database import get_db
 from app.models.equipment import Equipment
 from app.models.sensor_data import SensorData as SensorDataModel
 from app.models.user import User, user_company
-from app.schemas.sensor_data import SensorDataOut
+from app.schemas.sensor_data import SensorDataOut, SensorDataBase
 
 router = APIRouter()
 
@@ -70,6 +70,41 @@ def detect_delimiter(file_content: str):
     except csv.Error:
         return ','
 
+@router.post('/sensor-data', response_model=SensorDataOut)
+def create_sensor_data(
+    sensor_data: SensorDataBase = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    equipment = db.query(Equipment).filter(Equipment.equipment_id == sensor_data.equipment_id).first()
+    if not equipment:
+        raise HTTPException(status_code=404, detail=f"Equipment with ID {sensor_data.equipment_id} not found")
+
+    user_company_relation = (
+        db.query(user_company)
+        .filter(
+            user_company.c.user_id == current_user.id,
+            user_company.c.company_id == equipment.company_id,
+        )
+        .first()
+    )
+    if not user_company_relation:
+        raise HTTPException(
+            status_code=403,
+            detail=f"You don't have access to equipment {sensor_data.equipment_id}",
+        )
+
+    new_sensor_data = SensorDataModel(
+        equipment_id=equipment.id,
+        timestamp=sensor_data.timestamp,
+        value=sensor_data.value,
+    )
+
+    db.add(new_sensor_data)
+    db.commit()
+    db.refresh(new_sensor_data)
+
+    return new_sensor_data
 
 @router.post('/upload-csv/')
 async def upload_csv(
