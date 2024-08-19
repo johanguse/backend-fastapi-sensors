@@ -8,7 +8,7 @@ from testcontainers.postgres import PostgresContainer
 from app.core.database import Base, get_db
 from app.main import app
 from app.core.security import get_password_hash
-from tests.factories import UserFactory
+from tests.factories import UserFactory, CompanyFactory, EquipmentFactory
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -44,7 +44,8 @@ def client(db):
 
 @pytest.fixture
 def user(db):
-    user = UserFactory(hashed_password=get_password_hash("testpassword"))
+    user = UserFactory()
+    user.hashed_password = get_password_hash("testpassword")
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -53,12 +54,29 @@ def user(db):
 
 @pytest.fixture
 def other_user(db):
-    user = UserFactory(hashed_password=get_password_hash("testpassword"))
+    user = UserFactory()
+    user.hashed_password = get_password_hash("testpassword")
     db.add(user)
     db.commit()
     db.refresh(user)
     logger.info(f"Created other test user: {user.email}")
     return user
+
+@pytest.fixture
+def company(db):
+    company = CompanyFactory()
+    db.add(company)
+    db.commit()
+    db.refresh(company)
+    return company
+
+@pytest.fixture
+def equipment(db, company):
+    equipment = EquipmentFactory(company=company)
+    db.add(equipment)
+    db.commit()
+    db.refresh(equipment)
+    return equipment
 
 @pytest.fixture
 def token(client, user):
