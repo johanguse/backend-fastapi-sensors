@@ -1,11 +1,13 @@
 from datetime import timedelta
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.core.auth import get_current_admin_user, get_current_user
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import (
@@ -14,40 +16,21 @@ from app.core.security import (
     get_password_hash,
     verify_password,
 )
-from app.models.user import User
+from app.models.company import Company
+from app.models.user import User, user_company
 from app.schemas.user import Token, UserCreate
 from app.schemas.user import User as UserSchema
 
 router = APIRouter()
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f'{settings.API_V1_STR}/token')
 
 
 class RefreshToken(BaseModel):
     refresh_token: str
 
 
-def get_current_user(
-    db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)
-):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail='Could not validate credentials',
-        headers={'WWW-Authenticate': 'Bearer'},
-    )
-    try:
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
-        )
-        email: str = payload.get('sub')
-        if email is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-    user = db.query(User).filter(User.email == email).first()
-    if user is None:
-        raise credentials_exception
-    return user
+class UserCreateAdmin(UserCreate):
+    role: Optional[str] = 'user'
+    company_id: int
 
 
 @router.post('/token', response_model=Token)
@@ -95,6 +78,7 @@ invalidated_tokens = set()
 def refresh_access_token(
     refresh_token: RefreshToken,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -112,13 +96,9 @@ def refresh_access_token(
             algorithms=[settings.ALGORITHM],
         )
         email: str = payload.get('sub')
-        if email is None:
+        if email is None or email != current_user.email:
             raise credentials_exception
     except JWTError:
-        raise credentials_exception
-
-    user = db.query(User).filter(User.email == email).first()
-    if user is None:
         raise credentials_exception
 
     invalidated_tokens.add(refresh_token.refresh_token)
@@ -127,10 +107,10 @@ def refresh_access_token(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
     access_token = create_access_token(
-        subject=user.email, expires_delta=access_token_expires
+        subject=current_user.email, expires_delta=access_token_expires
     )
     new_refresh_token = create_refresh_token(
-        subject=user.email, expires_delta=timedelta(days=7)
+        subject=current_user.email, expires_delta=timedelta(days=7)
     )
 
     return {
@@ -141,10 +121,42 @@ def refresh_access_token(
 
 
 @router.post('/register', response_model=UserSchema)
-def register_user(user: UserCreate, db: Session = Depends(get_db)):
+def register_user(
+    user: UserCreateAdmin,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user),
+):
     db_user = db.query(User).filter(User.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail='Email already registered')
+
+    if user.role not in {'admin', 'user'}:
+        raise HTTPException(
+            status_code=400,
+            detail='Invalid role. Must be either "admin" or "user"',
+        )
+
+    # Check if the company exists
+    company = db.query(Company).filter(Company.id == user.company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail='Company not found')
+
+    # Check if the current admin user has rights to this company
+    admin_company = (
+        db.query(user_company)
+        .filter(
+            user_company.c.user_id == current_user.id,
+            user_company.c.company_id == user.company_id,
+            user_company.c.role == 'admin',
+        )
+        .first()
+    )
+    if not admin_company:
+        raise HTTPException(
+            status_code=403,
+            detail='You do not have admin rights for this company',
+        )
+
     hashed_password = get_password_hash(user.password)
     new_user = User(
         email=user.email, hashed_password=hashed_password, name=user.name
@@ -152,4 +164,13 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+
+    # Add user to user_company table with specified role and company
+    db.execute(
+        user_company.insert().values(
+            user_id=new_user.id, company_id=user.company_id, role=user.role
+        )
+    )
+    db.commit()
+
     return new_user

@@ -5,11 +5,21 @@ INSERT INTO "users" ("email", "hashed_password", "is_active", "name", "created_a
 ('alice.johnson@example.com', 'hashed_password_3', TRUE, 'Alice Johnson', NOW(), NOW());
 
 -- Insert data into companies table
-INSERT INTO "companies" ("name", "address", "admin_user_id", "created_at", "updated_at") VALUES
-('Oil Corp', '123 Main St', 1, NOW(), NOW()),
-('Energy Plus', '456 Elm St', 2, NOW(), NOW()),
-('Petro Tech', '789 Oak St', 1, NOW(), NOW()),
-('Green Energy', '101 Pine St', 3, NOW(), NOW());
+INSERT INTO "companies" ("name", "address", "created_at", "updated_at") VALUES
+('Oil Corp', '123 Main St', NOW(), NOW()),
+('Energy Plus', '456 Elm St', NOW(), NOW()),
+('Petro Tech', '789 Oak St', NOW(), NOW()),
+('Green Energy', '101 Pine St', NOW(), NOW());
+
+-- Insert data into user_company table
+INSERT INTO "user_company" ("user_id", "company_id", "role") VALUES
+(1, 1, 'admin'),
+(1, 3, 'admin'),
+(2, 2, 'admin'),
+(3, 4, 'admin'),
+(2, 1, 'user'),
+(3, 2, 'user'),
+(1, 4, 'user');
 
 -- Insert data into equipment table
 INSERT INTO "equipment" ("company_id", "equipment_id", "name", "created_at", "updated_at") VALUES
