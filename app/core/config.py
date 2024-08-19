@@ -26,6 +26,8 @@ class Settings(BaseSettings):
         os.getenv('REFRESH_TOKEN_EXPIRE_MINUTES', '10080')
     )
 
+    FRONTEND_URL: str = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+
     DATABASE_URL: Union[str, PostgresDsn]
 
     class Config:
