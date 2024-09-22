@@ -146,6 +146,11 @@ This project can be easily deployed on [Render](https://render.com/).
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/render-examples/fastapi)
 
+## Database diagram (schema)
+
+![image](https://github.com/user-attachments/assets/a8fb5fe4-d59e-4342-a549-bac3cc51d726)
+
+
 ## License
 
 This project is licensed under the MIT License.
