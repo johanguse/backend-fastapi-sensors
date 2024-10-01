@@ -28,10 +28,10 @@ add_pagination(app)
 
 Base.metadata.create_all(bind=engine)
 
-app.include_router(auth.router, prefix=settings.API_V1_STR)
-app.include_router(companies.router, prefix=settings.API_V1_STR)
-app.include_router(equipment.router, prefix=settings.API_V1_STR)
-app.include_router(sensor_data.router, prefix=settings.API_V1_STR)
+app.include_router(auth.router, prefix=settings.API_V1_STR, tags=['auth'])
+app.include_router(companies.router, prefix=settings.API_V1_STR, tags=['companies'])
+app.include_router(equipment.router, prefix=settings.API_V1_STR, tags=['equipment'])
+app.include_router(sensor_data.router, prefix=settings.API_V1_STR, tags=['sensor_data'])
 
 
 @app.get('/health')
