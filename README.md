@@ -4,9 +4,6 @@
 
 This is a FastAPI project for managing sensor data, built with Python 3.11, FastAPI, SQLAlchemy, and PostgreSQL. The project uses Poetry for dependency management and task automation.
 
-This project is runnig live on [https://backend-fastapi-sensors.onrender.com](https://backend-fastapi-sensors.onrender.com).
-You can check the API Documentation at [https://backend-fastapi-sensors.onrender.com/docs](https://backend-fastapi-sensors.onrender.com/docs).
-
 ### ⚠️ Attention
 ### This project is part of frontend project [frontend-fastapi-sensors](https://github.com/johanguse/frontend-fastapi-sensors).
 
